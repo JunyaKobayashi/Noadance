@@ -358,7 +358,7 @@
   var API_URL = "https://r8t00r3qx7.execute-api.ap-northeast-1.amazonaws.com/PRD";
 
   // ---- LIFF (LINEのミニアプリ機能): 未設定 or LINE外で開いた場合は静かにスキップ ----
-  var LIFF_ID = "__LIFF_ID__"; // LINE Developersで発行したLIFF IDに置き換える
+  var LIFF_ID = "2010970025-tjC2i2VK"; // LINE Developersで発行したLIFF IDに置き換える
   if (window.liff && LIFF_ID && LIFF_ID.indexOf("__") !== 0) {
     liff.init({ liffId: LIFF_ID }).then(function () {
       if (liff.isInClient()) {
