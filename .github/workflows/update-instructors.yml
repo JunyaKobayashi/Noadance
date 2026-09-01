@@ -1,1 +1,37 @@
+name: Update instructors data
+
+on:
+  schedule:
+    # 毎週月曜 05:00 JST (UTC日曜 20:00)
+    - cron: "0 20 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 依存パッケージは無い。標準ライブラリのみで動く。
+      - name: Build instructors.json
+        run: python3 build_instructors.py
+
+      - name: Commit if changed
+        run: |
+          git add -- instructors.json
+          if git diff --cached --quiet -- instructors.json; then
+            echo "変更なし。コミットしません。"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update instructors.json (automated)"
+          git push
 
