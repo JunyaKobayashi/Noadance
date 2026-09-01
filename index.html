@@ -122,7 +122,7 @@
 
   /* ---------- day tabs ---------- */
 
-  .day-tabs { display: flex; gap: 6px; margin-top: 18px; overflow-x: auto; padding-bottom: 2px; }
+  .day-tabs { display: flex; gap: 6px; margin-top: 18px; flex-wrap: wrap; padding-bottom: 2px; }
 
   .day-tab {
     flex: 1 0 auto;
@@ -270,6 +270,111 @@
 
   .lesson-link { color: var(--ink-muted); font-size: 18px; line-height: 1; padding: 4px; }
 
+  /* .lesson は既に position:relative かつ
+   *   grid-template-columns: 3px 58px 1fr auto
+   * のグリッドである。リンクを通常フローの子として置くと5つ目の
+   * グリッドアイテムになり1列目を奪って行全体のレイアウトが崩れる。
+   * 絶対配置でグリッドから外し、行全体を覆わせる。 */
+  .lesson-open { position: absolute; inset: 0; z-index: 0; }
+  /* LIVEバッジは絶対配置でリンクより後ろのDOM順にあるため、
+   * そのままだとリンクの上に描画されてタップを吸ってしまう。
+   * 装飾なのでタップを透過させる。 */
+  .lesson-now { pointer-events: none; }
+  .lesson-teacher {
+    position: relative; z-index: 1;
+    font: inherit; color: var(--ink); font-weight: 600;
+    background: none; border: 0; border-bottom: 1px dashed var(--line);
+    padding: 6px 4px; margin: -6px 0; cursor: pointer;
+  }
+  .lesson-teacher:hover { border-bottom-color: var(--ink-muted); }
+
+  /* .filters / .day-tabs / .status-bar はそれぞれ display:flex を宣言しており、
+   * 素の [hidden] (UAスタイルシートの display:none) は同じ display プロパティを
+   * 上書きできない。switchView() が hidden 属性で切り替えるため、ここで
+   * display:none を明示して優先させる。 */
+  .filters[hidden], .day-tabs[hidden], .status-bar[hidden] { display: none; }
+
+  .view-tabs { display: flex; gap: 6px; margin-top: 14px; }
+  .view-tab {
+    flex: 1; font: inherit; font-size: 13px; font-weight: 600;
+    padding: 9px 8px; border-radius: 10px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink-muted);
+  }
+  .view-tab.is-active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .find { margin-top: 16px; }
+  .find-filters { display: flex; flex-direction: column; gap: 8px; }
+  .find-group { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .find-group > .find-label {
+    font-size: 11px; font-weight: 700; color: var(--ink-muted);
+    width: 100%; letter-spacing: .06em;
+  }
+  .find-sort { display: flex; gap: 6px; margin-top: 14px; }
+  .find-count { font-size: 12.5px; color: var(--ink-muted); margin: 12px 0 6px; }
+  .find-results { display: flex; flex-direction: column; gap: 10px; }
+  .find-card {
+    display: grid; grid-template-columns: 48px 1fr; gap: 10px;
+    padding: 12px; border: 1px solid var(--line); border-radius: 12px;
+    background: var(--surface); text-align: left; font: inherit; cursor: pointer; width: 100%;
+  }
+  .find-card:hover { border-color: var(--ink-muted); }
+  .find-photo {
+    width: 48px; height: 48px; border-radius: 50%; object-fit: cover;
+    background: var(--surface-2);
+  }
+  .find-name { margin: 0; font-size: 15px; font-weight: 700; }
+  .find-thumbs { display: flex; gap: 5px; margin-top: 7px; }
+  .find-thumbs img { width: 72px; height: 41px; object-fit: cover; border-radius: 6px; background: var(--surface-2); }
+  .find-when { margin: 7px 0 0; font-size: 12px; color: var(--ink-muted); line-height: 1.6; }
+
+  .sheet-backdrop {
+    position: fixed; inset: 0; background: rgba(20, 16, 24, .45); z-index: 20;
+  }
+  body.sheet-open { overflow: hidden; }
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 21;
+    max-height: 85vh; overflow-y: auto;
+    background: var(--surface); border-radius: 18px 18px 0 0;
+    padding: 10px 16px calc(20px + env(safe-area-inset-bottom));
+    box-shadow: var(--shadow);
+  }
+  .sheet-grip {
+    width: 38px; height: 4px; border-radius: 999px;
+    background: var(--line); margin: 0 auto 10px;
+  }
+  .sheet-close {
+    position: absolute; top: 10px; right: 12px;
+    background: none; border: 0; font-size: 17px; color: var(--ink-muted);
+    cursor: pointer; padding: 4px;
+  }
+  .sheet-head { display: flex; align-items: center; gap: 12px; }
+  .sheet-photo {
+    width: 56px; height: 56px; border-radius: 50%; object-fit: cover;
+    background: var(--surface-2); flex: none;
+  }
+  .sheet-name { margin: 0; font-size: 18px; font-weight: 700; }
+  .sheet-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+  .sheet-badge {
+    font-size: 11.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    background: var(--surface-2); color: var(--ink-muted);
+  }
+  .sheet-badge.is-top { background: var(--accent); color: var(--accent-ink); }
+  .sheet-section { margin-top: 16px; }
+  .sheet-section h3 {
+    margin: 0 0 6px; font-size: 12px; font-weight: 700;
+    color: var(--ink-muted); letter-spacing: .06em;
+  }
+  .sheet-videos { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .sheet-video { flex: none; width: 148px; }
+  .sheet-video img {
+    width: 148px; height: 83px; object-fit: cover;
+    border-radius: 10px; background: var(--surface-2); display: block;
+  }
+  .sheet-text { margin: 0; font-size: 13.5px; line-height: 1.7; white-space: pre-wrap; }
+  .sheet-lessons { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+  .sheet-lessons li { padding: 5px 0; border-top: 1px solid var(--line); }
+  .sheet-note { font-size: 12.5px; color: var(--ink-muted); margin: 0; }
+  .sheet a { color: var(--accent); }
+
   .empty-state, .loading-state, .error-state {
     padding: 40px 10px;
     text-align: center;
@@ -327,6 +432,11 @@
     </div>
   </header>
 
+  <nav class="view-tabs" id="viewTabs" aria-label="画面を切り替え">
+    <button class="view-tab is-active" type="button" data-view="schedule" aria-pressed="true">今日のスケジュール</button>
+    <button class="view-tab" type="button" data-view="find" aria-pressed="false">先生を探す</button>
+  </nav>
+
   <nav class="day-tabs" id="dayTabs" aria-label="曜日を選択"></nav>
 
   <div class="status-bar" id="statusBar">
@@ -343,6 +453,17 @@
     <div class="loading-state">読み込み中…</div>
   </main>
 
+  <section class="find" id="findView" hidden>
+    <div class="find-filters" id="findFilters"></div>
+    <div class="find-sort">
+      <button class="chip is-active" type="button" id="sortPopular" aria-pressed="true">人気度順</button>
+      <button class="chip" type="button" id="sortInfo" aria-pressed="false">情報が多い順</button>
+    </div>
+    <p class="find-count" id="findCount"></p>
+    <div class="find-results" id="findResults"></div>
+    <p class="sheet-note" id="findUpdated"></p>
+  </section>
+
   <footer class="foot">
     <div class="foot-row">
       <p style="margin:0">最新の予約状況は<a href="https://www.noadance.com/schedule_search/" target="_blank" rel="noopener">NOA公式サイト</a>でも確認できます。</p>
@@ -351,6 +472,14 @@
     <p id="fetchedAt" style="margin:8px 0 0"></p>
   </footer>
 </div>
+
+<div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+<aside class="sheet" id="instructorSheet" role="dialog" aria-modal="true"
+       aria-labelledby="sheetName" hidden>
+  <div class="sheet-grip" aria-hidden="true"></div>
+  <button class="sheet-close" id="sheetClose" aria-label="閉じる">✕</button>
+  <div class="sheet-body" id="sheetBody"></div>
+</aside>
 
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="app-logic.js"></script>
@@ -421,7 +550,8 @@
               lessons: block.record.map(function (r) {
                 return {
                   s: r.Y_TIME_START, e: r.Y_TIME_END, studio: r.TENPO_NAME, room: r.STUDIO_NAME,
-                  genre: r.GENRE_SUB_NAME, gcode: r.GENRE_CODE, level: r.LEVEL_NAME, teacher: r.NICKNAME,
+                  genre: r.GENRE_SUB_NAME, gcode: r.GENRE_CODE, icode: r.INSTRUCTOR_CODE,
+                  daikou: !!r.Y_DAIKOU_FLG, level: r.LEVEL_NAME, teacher: r.NICKNAME,
                   woman: r.WOMAN_FLG, man: r.MAN_FLG, url: r.URL
                 };
               })
@@ -554,14 +684,27 @@
       block.lessons.forEach(function (l) {
         var color = studioColor(l.studio);
         var isLive = isToday && toMinutes(l.s) <= nowMin && nowMin < toMinutes(l.e);
-        var row = el("a", { class: "lesson", href: l.url, target: "_blank", rel: "noopener" }, [
+        var teacherBtn = el("button", {
+          class: "lesson-teacher", type: "button", "data-icode": l.icode,
+          onclick: function (ev) {
+            ev.preventDefault();
+            ev.stopPropagation();
+            openInstructorSheet(l.icode, l.teacher);
+          }
+        }, [l.teacher + "先生"]);
+        var row = el("div", { class: "lesson" }, [
+          el("a", {
+            class: "lesson-open", href: l.url, target: "_blank", rel: "noopener",
+            "aria-label": l.genre + " " + l.s + " " + l.studio + " のレッスン詳細"
+          }),
           el("span", { class: "lesson-bar", style: "--studio-color:" + color }),
           el("span", { class: "lesson-time" }, [el("span", { class: "t-start" }, [l.s]), l.e]),
           el("div", { class: "lesson-main" }, [
             el("p", { class: "lesson-genre" }, [l.genre, el("span", { class: "lesson-level" }, [l.level])]),
             el("p", { class: "lesson-meta" }, [
               el("span", { class: "studio-name", style: "--studio-color:" + color }, [l.studio]),
-              "・ " + l.teacher + "先生",
+              "・",
+              teacherBtn,
               l.woman ? el("span", { class: "lesson-badge" }, ["女性限定"]) : null,
               l.man ? el("span", { class: "lesson-badge" }, ["男性限定"]) : null
             ])
@@ -582,6 +725,7 @@
     renderFilters();
     renderStatus(day, blocks);
     renderSchedule(day, blocks);
+    if (!document.getElementById("findView").hidden) renderFind();
   }
 
   function renderLoading() {
@@ -605,6 +749,366 @@
     document.getElementById("statusText").textContent = "取得できませんでした";
     document.getElementById("statusPill").textContent = "ERROR";
   }
+
+  var instructorLoad = null;
+  var instructorLoadFailed = false;
+
+  /* instructors.json を一度だけ読み込む。呼ぶたびに同じPromiseを返す。
+   * 失敗しても致命的ではない(講師情報が出ないだけ)ので、falseで解決する。
+   * ただし失敗時はキャッシュしたPromiseを捨てる。一度でも失敗すると
+   * instructorLoad が残ったままになり、後で開いたシートが二度と
+   * 再取得を試みなくなる(セッション全体で機能停止する)ため。 */
+  function ensureInstructors() {
+    if (instructorLoad) return instructorLoad;
+    instructorLoad = fetch("instructors.json", { cache: "no-cache" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (json) {
+        var ok = applyInstructorData(json);
+        instructorLoadFailed = false;
+        if (ok) render();
+        return ok;
+      })
+      .catch(function (err) {
+        console.warn("instructors.json load failed:", err);
+        instructorLoadFailed = true;
+        instructorLoad = null;
+        return false;
+      });
+    return instructorLoad;
+  }
+
+  var sheetLastFocus = null;
+  var sheetOpenCode = null;
+
+  /* シートを開いている間に instructors.json が届くと render() が走って
+   * レッスン行が作り直される。要素の参照だけを覚えているとDOMから外れた
+   * ノードを掴んだままになり、閉じたときフォーカスが body に落ちる。
+   * 講師コードで現在のDOMから探し直す。 */
+  function closeInstructorSheet() {
+    document.getElementById("instructorSheet").hidden = true;
+    document.getElementById("sheetBackdrop").hidden = true;
+    document.body.className = "";
+    /* まず元の要素そのものに戻す。同じ講師が複数コマ持つのは普通なので、
+     * 講師コードでの検索を優先すると常に1件目のボタンに飛んでしまう。
+     * 背景の再描画でその要素がDOMから外れた場合だけ、コードで探し直す。 */
+    var target = null;
+    if (sheetLastFocus && sheetLastFocus.hasAttribute &&
+        sheetLastFocus.hasAttribute("data-icode") &&
+        document.contains(sheetLastFocus)) {
+      target = sheetLastFocus;
+    } else if (sheetOpenCode != null) {
+      var sel = window.CSS && window.CSS.escape
+        ? window.CSS.escape(String(sheetOpenCode)) : String(sheetOpenCode);
+      /* #scheduleList は #findView より前にあり、画面を切り替えても中身は
+       * 残っている。単に querySelector すると非表示側のボタンを拾ってしまい、
+       * 非表示要素への focus() は何も起きない。表示中のものを選ぶ。 */
+      var candidates = document.querySelectorAll('[data-icode="' + sel + '"]');
+      for (var ci = 0; ci < candidates.length; ci++) {
+        if (candidates[ci].offsetParent !== null) { target = candidates[ci]; break; }
+      }
+    }
+    if (target && target.focus) target.focus();
+    sheetLastFocus = null;
+    sheetOpenCode = null;
+  }
+
+  function lessonsOfInstructor(code) {
+    var out = [];
+    if (!state.data) return out;
+    var youbiLabel = { 1: "月", 2: "火", 3: "水", 4: "木", 5: "金", 6: "土", 0: "日" };
+    state.data.days.forEach(function (day) {
+      day.blocks.forEach(function (block) {
+        block.lessons.forEach(function (l) {
+          if (l.icode === code) {
+            out.push(youbiLabel[day.youbi] + " " + l.s + " " + l.studio + " / " +
+                     l.genre + " " + l.level + (l.daikou ? "(代講)" : ""));
+          }
+        });
+      });
+    });
+    return out;
+  }
+
+  /* entry が無いとき、原因によって表示すべき文言が違う。
+   * 「読み込み中」「取得失敗」「データに未収録」を混同すると、失敗時も
+   * 未収録時も永遠に読み込み中と表示され続け、利用者が区別できない。 */
+  function instructorMissingNote() {
+    if (INSTRUCTORS) return "この先生の詳細データは登録されていません";
+    return instructorLoadFailed
+      ? "講師データを取得できませんでした" : "読み込み中…";
+  }
+
+  function renderInstructorSheet(code, fallbackName, entry) {
+    var body = document.getElementById("sheetBody");
+    body.innerHTML = "";
+    var name = (entry && entry.name) || fallbackName || "講師";
+
+    var badges = el("div", { class: "sheet-badges" });
+    popularityBadges(entry).forEach(function (text, i) {
+      badges.appendChild(el("span", {
+        class: "sheet-badge" + (i === 0 && entry && entry.koma >= 5 ? " is-top" : "")
+      }, [text]));
+    });
+
+    body.appendChild(el("div", { class: "sheet-head" }, [
+      entry && entry.img
+        ? el("img", { class: "sheet-photo", src: entry.img, alt: "", loading: "lazy" })
+        : el("div", { class: "sheet-photo" }),
+      el("div", {}, [
+        el("h2", { class: "sheet-name", id: "sheetName" }, [name + "先生"]),
+        entry ? badges : el("p", { class: "sheet-note" }, [instructorMissingNote()])
+      ])
+    ]));
+
+    /* lessonsOfInstructor はスケジュールデータだけで完結するので、
+     * entry(詳細データ)が無い(未収録/未取得)場合でも今週の担当は出せる。
+     * 早期returnより前に置く。 */
+    var lessons = lessonsOfInstructor(code);
+    if (lessons.length) {
+      var ul = el("ul", { class: "sheet-lessons" });
+      lessons.forEach(function (text) { ul.appendChild(el("li", {}, [text])); });
+      body.appendChild(el("div", { class: "sheet-section" }, [
+        el("h3", {}, ["今週の担当"]), ul
+      ]));
+    }
+
+    if (!entry) return;
+
+    if ((entry.videos || []).length) {
+      var strip = el("div", { class: "sheet-videos" });
+      entry.videos.forEach(function (vid) {
+        strip.appendChild(el("a", {
+          class: "sheet-video", href: "https://www.youtube.com/watch?v=" + vid,
+          target: "_blank", rel: "noopener"
+        }, [el("img", { src: videoThumb(vid), alt: "", loading: "lazy" })]));
+      });
+      body.appendChild(el("div", { class: "sheet-section" }, [
+        el("h3", {}, ["レッスン動画"]), strip
+      ]));
+    }
+
+    if ((entry.message || "").length > 0) {
+      body.appendChild(el("div", { class: "sheet-section" }, [
+        el("h3", {}, ["先生のことば"]),
+        el("p", { class: "sheet-text" }, [entry.message])
+      ]));
+    }
+
+    if ((entry.keireki || "").length > 0) {
+      var det = el("details", { class: "sheet-section" }, [
+        el("summary", {}, ["経歴"]),
+        el("p", { class: "sheet-text" }, [entry.keireki])
+      ]);
+      body.appendChild(det);
+    }
+
+    if (!hasProfile(entry)) {
+      body.appendChild(el("p", { class: "sheet-note sheet-section" }, ["プロフィール未掲載"]));
+    }
+
+    if (entry.url) {
+      body.appendChild(el("p", { class: "sheet-section" }, [
+        el("a", { href: entry.url, target: "_blank", rel: "noopener" }, ["NOA公式のページを開く ↗"])
+      ]));
+    }
+  }
+
+  function openInstructorSheet(code, fallbackName) {
+    sheetLastFocus = document.activeElement;
+    sheetOpenCode = code;
+    document.getElementById("sheetBackdrop").hidden = false;
+    document.getElementById("instructorSheet").hidden = false;
+    document.body.className = "sheet-open";
+    document.getElementById("sheetClose").focus();
+    renderInstructorSheet(code, fallbackName, instructorOf(code));
+    if (!INSTRUCTORS) {
+      ensureInstructors().then(function () {
+        var sheet = document.getElementById("instructorSheet");
+        if (!sheet.hidden) renderInstructorSheet(code, fallbackName, instructorOf(code));
+      });
+    }
+  }
+
+  var findState = {
+    youbi: [], bands: [],
+    studios: DEFAULT_STUDIOS.slice(),
+    levels: [],
+    genres: DEFAULT_GENRES.slice(),
+    sort: "popular"
+  };
+
+  function toggleIn(list, value) {
+    var i = list.indexOf(value);
+    if (i >= 0) list.splice(i, 1); else list.push(value);
+  }
+
+  function levelOptions() {
+    var seen = [];
+    if (!state.data) return seen;
+    state.data.days.forEach(function (day) {
+      day.blocks.forEach(function (block) {
+        block.lessons.forEach(function (l) {
+          if (l.level && seen.indexOf(l.level) < 0) seen.push(l.level);
+        });
+      });
+    });
+    return seen;
+  }
+
+  function renderFindFilters() {
+    var wrap = document.getElementById("findFilters");
+    wrap.innerHTML = "";
+    function group(label, options, list) {
+      var row = el("div", { class: "find-group" }, [el("span", { class: "find-label" }, [label])]);
+      options.forEach(function (opt) {
+        var active = list.indexOf(opt.value) >= 0;
+        row.appendChild(el("button", {
+          class: "chip" + (active ? " is-active" : ""), type: "button",
+          "aria-pressed": String(active),
+          onclick: function () { toggleIn(list, opt.value); renderFind(); }
+        }, [opt.label]));
+      });
+      wrap.appendChild(row);
+    }
+    group("曜日", DAY_TABS.map(function (d) { return { value: d.youbi, label: d.label }; }), findState.youbi);
+    group("時間帯", TIME_BANDS.map(function (b) { return { value: b.key, label: b.label }; }), findState.bands);
+    group("スタジオ", STUDIOS.map(function (s) { return { value: s.key, label: s.key }; }), findState.studios);
+    group("ジャンル", GENRE_GROUPS.map(function (g) { return { value: g.key, label: g.label }; }), findState.genres);
+    group("レベル", levelOptions().map(function (v) { return { value: v, label: v }; }), findState.levels);
+  }
+
+  function renderFindResults() {
+    var results = document.getElementById("findResults");
+    var count = document.getElementById("findCount");
+    results.innerHTML = "";
+    if (!state.data) { count.textContent = ""; return; }
+
+    var found = collectInstructors(state.data.days, findState);
+    found.forEach(function (item) { item.entry = instructorOf(item.code); });
+
+    if (findState.sort === "info") {
+      found.sort(function (a, b) {
+        var d = infoScore(b.entry) - infoScore(a.entry);
+        if (d) return d;
+        var x = instructorSortKey(a.entry), y = instructorSortKey(b.entry);
+        for (var i = 0; i < x.length; i++) { if (x[i] !== y[i]) return x[i] - y[i]; }
+        return 0;
+      });
+    } else {
+      found.sort(function (a, b) {
+        var x = instructorSortKey(a.entry), y = instructorSortKey(b.entry);
+        for (var i = 0; i < x.length; i++) { if (x[i] !== y[i]) return x[i] - y[i]; }
+        return 0;
+      });
+    }
+
+    count.textContent = found.length + "人の先生が条件に合います";
+    if (!found.length) {
+      results.appendChild(el("p", { class: "empty-state" }, ["条件に合う先生がいません。絞り込みを緩めてください。"]));
+      return;
+    }
+
+    var youbiLabel = { 1: "月", 2: "火", 3: "水", 4: "木", 5: "金", 6: "土", 0: "日" };
+    found.forEach(function (item) {
+      var e = item.entry;
+      var badges = el("div", { class: "sheet-badges" });
+      popularityBadges(e).forEach(function (text, i) {
+        badges.appendChild(el("span", {
+          class: "sheet-badge" + (i === 0 && e && e.koma >= 5 ? " is-top" : "")
+        }, [text]));
+      });
+      var thumbs = el("div", { class: "find-thumbs" });
+      ((e && e.videos) || []).slice(0, 3).forEach(function (vid) {
+        thumbs.appendChild(el("img", { src: videoThumb(vid), alt: "", loading: "lazy" }));
+      });
+      var when = item.lessons.slice(0, 3).map(function (l) {
+        return youbiLabel[l.youbi] + " " + l.s + " " + l.studio + " / " + l.level +
+               (l.daikou ? "(代講)" : "");
+      }).join("\n");
+      if (item.lessons.length > 3) when += "\nほか" + (item.lessons.length - 3) + "件";
+
+      results.appendChild(el("button", {
+        class: "find-card", type: "button", "data-icode": item.code,
+        onclick: function () { openInstructorSheet(item.code, item.name); }
+      }, [
+        e && e.img ? el("img", { class: "find-photo", src: e.img, alt: "", loading: "lazy" })
+                   : el("div", { class: "find-photo" }),
+        el("div", {}, [
+          el("p", { class: "find-name" }, [(e && e.name) || item.name || "講師"]),
+          badges,
+          (e && e.videos && e.videos.length) ? thumbs : null,
+          el("p", { class: "find-when", style: "white-space:pre-line" }, [when])
+        ])
+      ]));
+    });
+  }
+
+  function renderFind() {
+    renderFindFilters();
+    renderFindResults();
+    var updated = document.getElementById("findUpdated");
+    updated.textContent = INSTRUCTORS
+      ? "講師データ更新日: " + String(INSTRUCTORS_GENERATED_AT).slice(0, 10)
+      : (instructorLoadFailed
+          ? "講師データを取得できませんでした。人気度順に並べられません"
+          : "講師データを読み込み中…");
+  }
+
+  function switchView(view) {
+    var isFind = view === "find";
+    document.getElementById("scheduleList").hidden = isFind;
+    document.getElementById("findView").hidden = !isFind;
+    document.querySelector(".filters").hidden = isFind;
+    document.getElementById("dayTabs").hidden = isFind;
+    document.getElementById("statusBar").hidden = isFind;
+    var tabs = document.querySelectorAll(".view-tab");
+    for (var i = 0; i < tabs.length; i++) {
+      var on = tabs[i].getAttribute("data-view") === view;
+      tabs[i].className = "view-tab" + (on ? " is-active" : "");
+      tabs[i].setAttribute("aria-pressed", String(on));
+    }
+    window.scrollTo(0, 0);
+    if (isFind) {
+      renderFind();
+      ensureInstructors().then(renderFind);
+    }
+  }
+
+  (function () {
+    var tabs = document.querySelectorAll(".view-tab");
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].addEventListener("click", function (ev) {
+        switchView(ev.currentTarget.getAttribute("data-view"));
+      });
+    }
+    document.getElementById("sortPopular").addEventListener("click", function () {
+      findState.sort = "popular";
+      document.getElementById("sortPopular").className = "chip is-active";
+      document.getElementById("sortPopular").setAttribute("aria-pressed", "true");
+      document.getElementById("sortInfo").className = "chip";
+      document.getElementById("sortInfo").setAttribute("aria-pressed", "false");
+      renderFindResults();
+    });
+    document.getElementById("sortInfo").addEventListener("click", function () {
+      findState.sort = "info";
+      document.getElementById("sortInfo").className = "chip is-active";
+      document.getElementById("sortInfo").setAttribute("aria-pressed", "true");
+      document.getElementById("sortPopular").className = "chip";
+      document.getElementById("sortPopular").setAttribute("aria-pressed", "false");
+      renderFindResults();
+    });
+  })();
+
+  document.getElementById("sheetClose").addEventListener("click", closeInstructorSheet);
+  document.getElementById("sheetBackdrop").addEventListener("click", closeInstructorSheet);
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && !document.getElementById("instructorSheet").hidden) {
+      closeInstructorSheet();
+    }
+  });
 
   function loadData() {
     renderLoading();

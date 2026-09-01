@@ -70,6 +70,43 @@ function genreKeyOf(genreCode) {
   return Object.prototype.hasOwnProperty.call(GENRE_MAP, key) ? GENRE_MAP[key] : "others";
 }
 
+/* instructors.json の中身。起動時ではなく、初めて必要になった時に読み込む。
+ * 484KBあるため、毎日使う「今日のスケジュール」の表示を待たせない。 */
+var INSTRUCTORS = null;
+var INSTRUCTORS_GENERATED_AT = "";
+
+/* 読み込んだデータをアプリに反映する。妥当なデータなら true を返す。
+ *
+ * genre_map はアプリが取得する6店舗の範囲では現れない細分類コードも含む
+ * (99=ジャズヒップホップ、112/113=リズムトレーニングなど)。静的な GENRE_MAP に
+ * 統合することで、店舗を増やしたときに others へ落ちるのを防ぐ。 */
+function applyInstructorData(data) {
+  if (!data || typeof data !== "object") return false;
+  var instructors = data.instructors;
+  if (!instructors || typeof instructors !== "object" ||
+      Object.prototype.toString.call(instructors) === "[object Array]") {
+    return false;
+  }
+  var map = data.genre_map;
+  if (map && typeof map === "object") {
+    for (var code in map) {
+      if (Object.prototype.hasOwnProperty.call(map, code)) {
+        GENRE_MAP[String(code)] = map[code];
+      }
+    }
+  }
+  INSTRUCTORS_GENERATED_AT = data.generated_at || "";
+  INSTRUCTORS = instructors;
+  return true;
+}
+
+function instructorOf(code) {
+  if (!INSTRUCTORS || code == null) return null;
+  var key = String(code);
+  return Object.prototype.hasOwnProperty.call(INSTRUCTORS, key)
+    ? INSTRUCTORS[key] : null;
+}
+
 /* APIレスポンスが「HTTP 200 だが中身が空」かどうかを判定する。
  * NOAのAPIは条件によっては構造上正常な空JSONを返すため、
  * これをエラーとして扱わないと「レッスンなし」と誤表示される。 */
@@ -82,4 +119,98 @@ function isEmptySchedule(json) {
       return !block.record || !block.record.length;
     });
   });
+}
+
+var KEIREKI_MIN = 30;
+var MESSAGE_MIN = 15;
+var INFO_VIDEO_MAX = 3;
+
+/* 人気度は合成スコアにせず実数のまま出す(設計書3.2)。
+ * 中央値1.5コマ・週5コマ以上は2%という偏った分布なので、実数で十分に差が見える。 */
+function popularityBadges(entry) {
+  if (!entry) return [];
+  var koma = entry.koma || 0;
+  if (!koma) return [(entry.daiko || 0) > 0 ? "今週は代講のみ" : "今週は担当なし"];
+  var out = ["週" + koma + "コマ", (entry.tenpo || 0) + "店舗"];
+  if (entry.gold) out.push("好枠" + entry.gold);
+  return out;
+}
+
+function hasProfile(entry) {
+  if (!entry) return false;
+  return (entry.keireki || "").length > KEIREKI_MIN ||
+         (entry.message || "").length > MESSAGE_MIN ||
+         ((entry.videos || []).length > 0);
+}
+
+/* 「情報が多い順」の並べ替えに使う補助的な指標。人気度とは別物。 */
+function infoScore(entry) {
+  if (!entry) return 0;
+  var score = 0;
+  if ((entry.keireki || "").length > KEIREKI_MIN) score += 1;
+  if ((entry.message || "").length > MESSAGE_MIN) score += 1;
+  score += Math.min((entry.videos || []).length, INFO_VIDEO_MAX);
+  return score;
+}
+
+/* 恣意的な重み付けを避けるため、合成スコアではなく辞書式に比較する。 */
+function instructorSortKey(entry) {
+  if (!entry) return [0, 0, 0];
+  return [-(entry.koma || 0), -(entry.tenpo || 0), -(entry.gold || 0)];
+}
+
+function videoThumb(videoId) {
+  return "https://i.ytimg.com/vi/" + videoId + "/mqdefault.jpg";
+}
+
+/* 開始時刻での4区分(設計書7.2)。 */
+var TIME_BANDS = [
+  { key: "noon", label: "昼", from: 0, to: 12 },
+  { key: "afternoon", label: "午後", from: 12, to: 17 },
+  { key: "evening", label: "夕方", from: 17, to: 19 },
+  { key: "night", label: "夜", from: 19, to: 24 }
+];
+
+function timeBandOf(hhmm) {
+  var hour = parseInt(String(hhmm).slice(0, 2), 10);
+  if (isNaN(hour)) return TIME_BANDS[0].key;
+  for (var i = 0; i < TIME_BANDS.length; i++) {
+    if (hour >= TIME_BANDS[i].from && hour < TIME_BANDS[i].to) return TIME_BANDS[i].key;
+  }
+  return TIME_BANDS[TIME_BANDS.length - 1].key;
+}
+
+/* 条件に合うレッスンを担当している講師を集める。
+ * 空の配列はその軸で絞り込まない。同一軸内はOR、軸をまたぐとAND。 */
+function collectInstructors(days, filters) {
+  var out = [];
+  var index = {};
+  if (!days || !days.length) return out;
+  var f = filters || {};
+  function passes(list, value) {
+    return !list || !list.length || list.indexOf(value) >= 0;
+  }
+  days.forEach(function (day) {
+    if (!passes(f.youbi, day.youbi)) return;
+    (day.blocks || []).forEach(function (block) {
+      (block.lessons || []).forEach(function (l) {
+        if (!passes(f.bands, timeBandOf(l.s))) return;
+        if (!passes(f.studios, studioKey(l.studio))) return;
+        if (!passes(f.levels, l.level)) return;
+        if (!passes(f.genres, genreKeyOf(l.gcode))) return;
+        var code = l.icode;
+        var found = Object.prototype.hasOwnProperty.call(index, code) ? index[code] : null;
+        if (!found) {
+          found = { code: code, name: l.teacher, lessons: [] };
+          index[code] = found;
+          out.push(found);
+        }
+        found.lessons.push({
+          youbi: day.youbi, s: l.s, e: l.e, studio: l.studio,
+          genre: l.genre, level: l.level, daikou: !!l.daikou
+        });
+      });
+    });
+  });
+  return out;
 }
