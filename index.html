@@ -28,6 +28,7 @@
     --studio-toritsudai: #4470d1;
     --studio-ebisu: #6f9a3f;
     --studio-harajuku: #8266d4;
+    --studio-akasaka: #c2566e;
     --shadow: 0 1px 2px rgba(34, 26, 38, .06), 0 10px 26px -14px rgba(34, 26, 38, .22);
   }
 
@@ -46,6 +47,7 @@
       --studio-toritsudai: #7098ea;
       --studio-ebisu: #9bc667;
       --studio-harajuku: #a88ff0;
+      --studio-akasaka: #e58aa0;
       --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 14px 32px -16px rgba(0, 0, 0, .65);
     }
   }
@@ -189,7 +191,7 @@
   /* ---------- filters ---------- */
 
   .filters { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
-  .filter-row { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+  .filter-row { display: flex; flex-wrap: wrap; gap: 6px; }
 
   .chip {
     appearance: none;
@@ -351,14 +353,10 @@
 </div>
 
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="app-logic.js"></script>
 <script>
-  // ---- 設定: よく行くスタジオ・ジャンル(必要に応じて書き換え可) ----
-  var LOCATIONS = ["7", "8", "10", "2", "12"]; // 中目黒, 新宿, 都立大, 恵比寿, 原宿
-  var GENRES = ["01", "18", "09", "06"];        // HIP-HOP, リズムトレーニング, OTHERS
-  var API_URL = "https://r8t00r3qx7.execute-api.ap-northeast-1.amazonaws.com/PRD";
-
   // ---- LIFF (LINEのミニアプリ機能): 未設定 or LINE外で開いた場合は静かにスキップ ----
-  var LIFF_ID = "2010970025-tjC2i2VK"; // LINE Developersで発行したLIFF IDに置き換える
+  var LIFF_ID = "2010970025-tjC2i2VK";
   if (window.liff && LIFF_ID && LIFF_ID.indexOf("__") !== 0) {
     liff.init({ liffId: LIFF_ID }).then(function () {
       if (liff.isInClient()) {
@@ -371,20 +369,6 @@
     });
   }
 
-  var STUDIOS = [
-    { key: "中目黒", color: "var(--studio-nakameguro)" },
-    { key: "新宿", color: "var(--studio-shinjuku)" },
-    { key: "都立大", color: "var(--studio-toritsudai)" },
-    { key: "恵比寿", color: "var(--studio-ebisu)" },
-    { key: "原宿", color: "var(--studio-harajuku)" }
-  ];
-
-  var GENRE_GROUPS = [
-    { key: "hiphop", label: "HIP-HOP", test: /ヒップホップ|HIPHOP|HIP HOP|R&B|LA STYLE|FREE STYLE|VOGUING/i },
-    { key: "rhythm", label: "リズムトレーニング", test: /リズム/ },
-    { key: "others", label: "OTHERS", test: /.*/ }
-  ];
-
   var DAY_TABS = [
     { youbi: 1, label: "月" }, { youbi: 2, label: "火" }, { youbi: 3, label: "水" },
     { youbi: 4, label: "木" }, { youbi: 5, label: "金" }, { youbi: 6, label: "土" }, { youbi: 0, label: "日" }
@@ -395,8 +379,8 @@
 
   var state = {
     selectedDay: todayYoubi,
-    studios: new Set(STUDIOS.map(function (s) { return s.key; })),
-    genres: new Set(GENRE_GROUPS.map(function (g) { return g.key; })),
+    studios: new Set(DEFAULT_STUDIOS),
+    genres: new Set(DEFAULT_GENRES),
     data: null,
     loadedAt: null
   };
@@ -416,12 +400,10 @@
     return node;
   }
 
-  function studioKey(tenpoName) { return tenpoName.split(/\s+/)[0]; }
   function studioColor(tenpoName) {
     var found = STUDIOS.find(function (s) { return s.key === studioKey(tenpoName); });
     return found ? found.color : "var(--line)";
   }
-  function genreGroupOf(name) { return GENRE_GROUPS.find(function (g) { return g.test.test(name); }); }
   function toMinutes(hhmm) {
     var parts = hhmm.split(":").map(Number);
     return parts[0] * 60 + parts[1];
@@ -439,7 +421,7 @@
               lessons: block.record.map(function (r) {
                 return {
                   s: r.Y_TIME_START, e: r.Y_TIME_END, studio: r.TENPO_NAME, room: r.STUDIO_NAME,
-                  genre: r.GENRE_SUB_NAME, level: r.LEVEL_NAME, teacher: r.NICKNAME,
+                  genre: r.GENRE_SUB_NAME, gcode: r.GENRE_CODE, level: r.LEVEL_NAME, teacher: r.NICKNAME,
                   woman: r.WOMAN_FLG, man: r.MAN_FLG, url: r.URL
                 };
               })
@@ -510,7 +492,7 @@
     var out = [];
     day.blocks.forEach(function (block) {
       var lessons = block.lessons.filter(function (l) {
-        return state.studios.has(studioKey(l.studio)) && state.genres.has(genreGroupOf(l.genre).key);
+        return state.studios.has(studioKey(l.studio)) && state.genres.has(genreKeyOf(l.gcode));
       });
       if (lessons.length) out.push({ time: block.time, lessons: lessons });
     });
@@ -629,7 +611,7 @@
     fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ location: LOCATIONS, genre: GENRES, brand: "1", is_month: false })
+      body: JSON.stringify({ location: LOCATIONS, genre: GENRES, brand: "1", is_month: true })
     })
       .then(function (res) {
         if (!res.ok) throw new Error("HTTP " + res.status);
@@ -637,6 +619,10 @@
       })
       .then(function (json) {
         if (json.statusCode != "200") throw new Error("API error");
+        if (isEmptySchedule(json)) {
+          renderError("スケジュールを1件も取得できませんでした。NOA側のデータ提供状況が変わった可能性があります。時間をおいて再度お試しください。");
+          return;
+        }
         state.data = transformApiResponse(json);
         state.loadedAt = new Date();
         document.getElementById("fetchedAt").textContent =
