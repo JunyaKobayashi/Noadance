@@ -9,7 +9,6 @@ var API_URL = "https://r8t00r3qx7.execute-api.ap-northeast-1.amazonaws.com/PRD";
 
 /* 取得対象。ここの genre は「大分類」コードであり、
  * レスポンスの GENRE_CODE(細分類)とは別の体系である。 */
-var LOCATIONS = ["7", "10", "2", "8", "12", "11"]; // 中目黒, 都立大, 恵比寿, 新宿, 原宿, 赤坂
 var GENRES = [
   "01", "18", // HIP-HOP
   "09",       // リズムトレーニング
@@ -20,14 +19,25 @@ var GENRES = [
   "06"        // OTHERS
 ];
 
+/* 店舗の定義。key は TENPO_NAME と照合する名前かつチップの表示名、
+ * code は本編7.4のリクエスト用店舗コード。店舗を足すときはここに1行足し、
+ * index.html に色をライト・ダークで1つずつ足せばよい。 */
 var STUDIOS = [
-  { key: "中目黒", color: "var(--studio-nakameguro)" },
-  { key: "都立大", color: "var(--studio-toritsudai)" },
-  { key: "恵比寿", color: "var(--studio-ebisu)" },
-  { key: "新宿", color: "var(--studio-shinjuku)" },
-  { key: "原宿", color: "var(--studio-harajuku)" },
-  { key: "赤坂", color: "var(--studio-akasaka)" }
+  { key: "中目黒",   code: "7",  color: "var(--studio-nakameguro)" },
+  { key: "都立大",   code: "10", color: "var(--studio-toritsudai)" },
+  { key: "恵比寿",   code: "2",  color: "var(--studio-ebisu)" },
+  { key: "新宿",     code: "8",  color: "var(--studio-shinjuku)" },
+  { key: "原宿",     code: "12", color: "var(--studio-harajuku)" },
+  { key: "赤坂",     code: "11", color: "var(--studio-akasaka)" },
+  { key: "秋葉原",   code: "1",  color: "var(--studio-akihabara)" },
+  { key: "御茶ノ水", code: "14", color: "var(--studio-ochanomizu)" },
+  { key: "池袋",     code: "4",  color: "var(--studio-ikebukuro)" }
 ];
+
+/* 取得対象。STUDIOS から導出し、店舗の追加を1箇所で済ませる。
+ * ここの code はリクエストの location であり、レスポンスの
+ * GENRE_CODE とも、大分類の genre コードとも無関係である。 */
+var LOCATIONS = STUDIOS.map(function (s) { return s.code; });
 
 var GENRE_GROUPS = [
   { key: "hiphop", label: "HIP-HOP" },
@@ -77,7 +87,7 @@ var INSTRUCTORS_GENERATED_AT = "";
 
 /* 読み込んだデータをアプリに反映する。妥当なデータなら true を返す。
  *
- * genre_map はアプリが取得する6店舗の範囲では現れない細分類コードも含む
+ * genre_map はアプリが取得する9店舗の範囲では現れない細分類コードも含む
  * (99=ジャズヒップホップ、112/113=リズムトレーニングなど)。静的な GENRE_MAP に
  * 統合することで、店舗を増やしたときに others へ落ちるのを防ぐ。 */
 function applyInstructorData(data) {
